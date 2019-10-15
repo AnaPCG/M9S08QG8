@@ -1,0 +1,25 @@
+#include <hidef.h> /* for EnableInterrupts macro */
+#include "derivative.h" /* include peripheral declarations */
+
+
+void main(void) {
+  EnableInterrupts;
+  SOPT1_COPE=1;  //WATCHDOG OFF
+
+  PTAD_PTAD2=1; //PTA2
+  		PTADD_PTADD2=0; //INPUT PTA2 para SW1
+  	//PTAD_PTAD3=1; //PTA3
+  		//PTADD_PTADD3=1; //OUTPUT PTB3 para TriLED //ROJO
+  	//PTBD_PTBD6=1;   //PTB6
+  		//PTBDD_PTBDD6=1;  //OUTPUT PTB6 para TriLED //AZUL
+  	//PTBD_PTBD7=1;    //PTB7
+  		//PTBDD_PTBDD6=1;  //OUTPUT PTB7 para TriLED  //VERDE
+  	
+  
+
+  for(;;) {
+	  unsigned short estadopin=PTAD_PTAD2;
+	  delay();
+  } /* loop forever */
+  
+}
