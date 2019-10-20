@@ -1,0 +1,116 @@
+#include <hidef.h> /* for EnableInterrupts macro */
+#include "derivative.h" /* include peripheral declarations */
+
+unsigned char i=0;
+unsigned char PO_ADC;
+unsigned char boton=0; //Para encendido
+unsigned char bateria;
+
+//Falta añadir TPM para tomar la señal del rojo & infrarojo
+
+
+
+interrupt 2 void PTA2_ISR (void){ //duda sobre esta interrupcion
+	//aqui falta algo
+	boton^=1;
+}
+
+interrupt 19 void ADC_ISR (void){ // número 19:(página 68)
+    PO_ADC=ADCRL;
+}
+
+//interrupt 16 void UART_TX_ISR (void){
+	//(void)SCIS1;
+	//SCID=dato[i++];
+	//if (dato[i]==0){
+		//SCIC2_TIE=0; //Deshabilita Intr de UART_TX
+	//}
+//}
+
+interrupt 12 void MTIM_ISR (void){
+	(void) MTIMSC;
+	MTIMSC&=~(1<<7);
+
+	ADCSC1=0x41;    //Canal 1/PTA 1. Revisar en esquemático. Hab Intr. Inicia conversion
+	
+	if ((0<=bateria)&(125>bateria)){
+			PTAD_PTAD3=1;
+		    PTBD_PTBD6=0;
+		    PTBD_PTBD7=0; 
+		 
+	}else if((125<=bateria)&(126>bateria))
+				 {
+				 PTBD_PTBD6=1;
+				 PTAD_PTAD3=0;
+				 PTBD_PTBD7=0; 
+				 }
+			 else{
+				 PTBD_PTBD7=1;
+			     PTBD_PTBD6=0;
+			     PTAD_PTAD3=0;
+			 }
+		 
+}
+
+interrupt 3 void  LVD_ISR (void){
+	
+}
+
+
+void main(void) {
+  EnableInterrupts;
+  SOPT1_COPE=1;  //WATCHDOG OFF
+  APCTL1_ADPC1=1;//¿Esto se cambia por PTBD2?
+  
+  PORT_init();
+  ADC1_init();
+  SCI_init();
+  TIMER_init();
+  TPM_init();
+  
+  for(;;){
+  }/*loop forever*/
+}
+
+void PORT_init(void){
+	PTAD_PTAD2=1;   //PTA2
+		PTADD_PTADD2=1; //OUTPUT PTA2 para LED Encendido
+	PTBD_PTBD1=1;   //PTB2
+		PTBDD_PTBDD1=0; //INPUT PTB2 para ADC //ADP6
+	PTAD_PTAD1=1; //PTA1
+		PTADD_PTADD2=0; //INPUT PTA1 para SWITCH Encendido
+	PTBD_PTBD3=1; //PTA3
+		PTBDD_PTBDD3=1; //OUTPUT PTB3 para TriLED //ROJO
+	PTBD_PTBD4=1;   //PTB4
+		PTBDD_PTBDD4=1;  //OUTPUT PTB4 para TriLED //AZUL
+	PTBD_PTBD6=1;    //PTB6
+		PTBDD_PTBDD6=1;  //OUTPUT PTB6 para TriLED  //VERDE
+		
+	
+}
+void ADC1_init(void){
+	ADCSC1=0x41;      //Enable & AD1
+}
+void SCI_init(void){
+	SCIBD=26;    //SCIBD=busclk (4 Mhz)/(16*baud rate(9600 bps))
+	SCIC2=0x8C;    // TIE=1, TE=1, RE=1
+}
+void TIMER_init(void){
+	MTIMCLK=2;    //Bit 5 y 4: 00 BusCLK (4 MHz)
+	        //Bit2 3210: 0010 Preescaler div 4 (1 MHz)
+	MTIMSC=0x40;   //Hab interrupción y pone en 0 bi STOP
+	MTIMMOD=200;   // Número de 8 bits para comparar
+
+}
+
+void TPM_init(void){
+
+	 PTAD_PTAD0=1;  //TPMCH0
+	 PTADD_PTADD0=0;  //INPUT
+	 PTBD_PTBD5=1;  //TPMCH1
+	 PTBDD_PTBDD5=0; //INPUT
+	 
+	 TPMSC=0x0A;    //BUSCLCK w/prescaler(div by 4)  //1MHz
+	 TPMC0SC=0x48;  //CH0 Interrupt Enable //Input Capture Falling Edge
+	 TPMC1SC=0x48;  //CH1 Interrupt Enable //Input Capture Falling Edge
+}
